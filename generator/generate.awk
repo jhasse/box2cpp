@@ -868,6 +868,11 @@ END {
                     dtor_args = "true"
                     dtor_comment = " // Update mass by default. Call `Destroy(false)` manually if you don't want this."
                 }
+                else if (type == "Joint")
+                {
+                    dtor_args = "true"
+                    dtor_comment = " // Wake body by default. Call `Destroy(false)` manually if you don't want this."
+                }
                 print ""
                 print "        ~" type "() { if (*this) Destroy(" dtor_args "); }" dtor_comment
             }

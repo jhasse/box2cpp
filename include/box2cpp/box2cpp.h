@@ -1,7 +1,7 @@
 #pragma once
 
 // box2cpp, C++ bindings for box2d 3.x
-// Generated from box2d commit: df9787b 2025-07-27
+// Generated from box2d commit: 3a4f0da 2025-10-19
 // Generator version: 0.13
 
 #include <box2d/box2d.h>
@@ -56,9 +56,6 @@ namespace b2
     template <bool IsConstRef> class MaybeConstMotorJointRef;
     using MotorJointRef = MaybeConstMotorJointRef<false>;
     using MotorJointConstRef = MaybeConstMotorJointRef<true>;
-    template <bool IsConstRef> class MaybeConstMouseJointRef;
-    using MouseJointRef = MaybeConstMouseJointRef<false>;
-    using MouseJointConstRef = MaybeConstMouseJointRef<true>;
     template <bool IsConstRef> class MaybeConstPrismaticJointRef;
     using PrismaticJointRef = MaybeConstPrismaticJointRef<false>;
     using PrismaticJointConstRef = MaybeConstPrismaticJointRef<true>;
@@ -158,33 +155,22 @@ namespace b2
         /// Chain identifier validation. Provides validation for up to 64K allocations.
         [[nodiscard]] bool IsValid() const;
 
-        /// Set the chain friction
-        /// @see b2ChainDef::friction
-        void SetFriction(float friction) /*non-const*/ requires (!ForceConst);
-
-        /// Get the chain friction
-        [[nodiscard]] float GetFriction() const;
-
-        /// Set the chain material
-        /// @see b2ChainDef::material
-        void SetMaterial(int material) /*non-const*/ requires (!ForceConst);
-
-        /// Get the chain material
-        [[nodiscard]] int GetMaterial() const;
-
-        /// Set the chain restitution (bounciness)
-        /// @see b2ChainDef::restitution
-        void SetRestitution(float restitution) /*non-const*/ requires (!ForceConst);
-
-        /// Get the chain restitution
-        [[nodiscard]] float GetRestitution() const;
-
         /// Get the number of segments on this chain
         [[nodiscard]] int GetSegmentCount() const;
 
         /// Fill a user array with chain segment shape ids up to the specified capacity. Returns
         /// the actual number of segments returned.
         [[nodiscard]] int GetSegments(b2ShapeId* segmentArray, int capacity) const;
+
+        /// Set a chain material. If the chain has only one material, this material is applied to all
+        /// segments. Otherwise it is applied to a single segment.
+        void SetSurfaceMaterial(const b2SurfaceMaterial& material, int materialIndex) /*non-const*/ requires (!ForceConst);
+
+        /// Get a chain material by index.
+        [[nodiscard]] b2SurfaceMaterial GetSurfaceMaterial(int materialIndex) const;
+
+        /// Get the number of materials used on this chain. Must be 1 or the number of segments.
+        [[nodiscard]] int GetSurfaceMaterialCount() const;
 
         /// Get the world that owns this chain shape
         [[nodiscard]] WorldRef GetWorld() /*non-const*/ requires (!ForceConst);
@@ -303,6 +289,16 @@ namespace b2
         /// Get the current world AABB
         [[nodiscard]] b2AABB GetAABB() const;
 
+        /// Apply a wind force to the body for this shape using the density of air. This considers
+        /// the projected area of the shape in the wind direction. This also considers
+        /// the relative velocity of the shape.
+        /// @param shapeId the shape id
+        /// @param wind the wind velocity in world space
+        /// @param drag the drag coefficient, the force that opposes the relative velocity
+        /// @param lift the lift coefficient, the force that is perpendicular to the relative velocity
+        /// @param wake should this wake the body
+        void ApplyWind(b2Vec2 wind, float drag, float lift, bool wake) /*non-const*/ requires (!ForceConst);
+
         /// Get the id of the body that a shape is attached to
         [[nodiscard]] BodyRef GetBody() /*non-const*/ requires (!ForceConst);
         [[nodiscard]] BodyConstRef GetBody() const;
@@ -359,7 +355,6 @@ namespace b2
         [[nodiscard]] b2Filter GetFilter() const;
 
         /// Set the friction on a shape
-        /// @see b2ShapeDef::friction
         void SetFriction(float friction) /*non-const*/ requires (!ForceConst);
 
         /// Get the friction of a shape
@@ -371,13 +366,6 @@ namespace b2
 
         /// Returns true if hit events are enabled
         [[nodiscard]] bool AreHitEventsEnabled() const;
-
-        /// Set the shape material identifier
-        /// @see b2ShapeDef::material
-        void SetMaterial(int material) /*non-const*/ requires (!ForceConst);
-
-        /// Get the shape material identifier
-        [[nodiscard]] int GetMaterial() const;
 
         /// Get the parent chain id if the shape type is a chain segment, otherwise
         /// returns b2_nullChainId.
@@ -399,7 +387,6 @@ namespace b2
         [[nodiscard]] b2CastOutput RayCast(const b2RayCastInput& input) const;
 
         /// Set the shape restitution (bounciness)
-        /// @see b2ShapeDef::restitution
         void SetRestitution(float restitution) /*non-const*/ requires (!ForceConst);
 
         /// Get the shape restitution
@@ -436,7 +423,7 @@ namespace b2
         [[nodiscard]] bool AreSensorEventsEnabled() const;
 
         /// Set the shape surface material
-        void SetSurfaceMaterial(b2SurfaceMaterial surfaceMaterial) /*non-const*/ requires (!ForceConst);
+        void SetSurfaceMaterial(const b2SurfaceMaterial& surfaceMaterial) /*non-const*/ requires (!ForceConst);
 
         /// Get the shape surface material
         [[nodiscard]] b2SurfaceMaterial GetSurfaceMaterial() const;
@@ -453,6 +440,12 @@ namespace b2
         /// Get the user data for a shape. This is useful when you get a shape id
         /// from an event or query.
         [[nodiscard]] void* GetUserData() const;
+
+        /// Set the user material identifier
+        void SetUserMaterial(uint64_t material) /*non-const*/ requires (!ForceConst);
+
+        /// Get the user material identifier
+        [[nodiscard]] uint64_t GetUserMaterial() const;
 
         /// Get the world that owns this shape
         [[nodiscard]] WorldRef GetWorld() /*non-const*/ requires (!ForceConst);
@@ -532,8 +525,8 @@ namespace b2
         // I want this to return a const reference, but GCC 13 and earlier choke on that (fixed in 14). GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61663
         template <std::same_as<b2JointId> T> [[nodiscard]] operator T() const { return Handle(); }
 
-        /// Destroy a joint
-        void Destroy() /*non-const*/ requires (!ForceConst);
+        /// Destroy a joint. Optionally wake attached bodies.
+        void Destroy(bool wakeAttached) /*non-const*/ requires (!ForceConst);
 
         /// Joint identifier validation. Provides validation for up to 64K allocations.
         [[nodiscard]] bool IsValid() const;
@@ -626,7 +619,6 @@ namespace b2
         friend class WheelJoint;
         friend class RevoluteJoint;
         friend class DistanceJoint;
-        friend class MouseJoint;
         friend class MotorJoint;
         friend class PrismaticJoint;
         template <typename, bool>
@@ -644,7 +636,7 @@ namespace b2
         Joint(Joint&& other) noexcept { id = std::exchange(other.id, b2JointId{}); }
         Joint& operator=(Joint other) noexcept { std::swap(id, other.id); return *this; }
 
-        ~Joint() { if (*this) Destroy(); }
+        ~Joint() { if (*this) Destroy(true); } // Wake body by default. Call `Destroy(false)` manually if you don't want this.
     };
 
     template <bool IsConstRef>
@@ -681,9 +673,6 @@ namespace b2
         BasicDistanceJointInterface() = default;
 
       public:
-        /// The the spring resist compression?
-        [[nodiscard]] bool IsCompressionEnabled() const;
-
         /// Get the current length of a distance joint
         [[nodiscard]] float GetCurrentLength() const;
 
@@ -958,101 +947,6 @@ namespace b2
         explicit constexpr MaybeConstMotorJointRef(MaybeConstJointRef<IsConstRef> other) noexcept : MaybeConstMotorJointRef(other.Handle()) {}
         // Convert a non-const reference to a const reference.
         constexpr MaybeConstMotorJointRef(const MaybeConstMotorJointRef<!IsConstRef>& other) noexcept requires IsConstRef : MaybeConstMotorJointRef(other.Handle()) {}
-    };
-
-    template <typename D, bool ForceConst>
-    class BasicMouseJointInterface
-    {
-      protected:
-        BasicMouseJointInterface() = default;
-
-      public:
-        /// Set the mouse joint maximum force, usually in newtons
-        void SetMaxForce(float maxForce) /*non-const*/ requires (!ForceConst);
-
-        /// Get the mouse joint maximum force, usually in newtons
-        [[nodiscard]] float GetMaxForce() const;
-
-        /// Set the mouse joint spring damping ratio, non-dimensional
-        void SetSpringDampingRatio(float dampingRatio) /*non-const*/ requires (!ForceConst);
-
-        /// Get the mouse joint damping ratio, non-dimensional
-        [[nodiscard]] float GetSpringDampingRatio() const;
-
-        /// Set the mouse joint spring stiffness in Hertz
-        void SetSpringHertz(float hertz) /*non-const*/ requires (!ForceConst);
-
-        /// Get the mouse joint spring stiffness in Hertz
-        [[nodiscard]] float GetSpringHertz() const;
-    };
-
-    /// A mouse joint is used to make a point on body B track a point on body A.
-    /// You may move local frame A to change the target point.
-    /// This a soft constraint and allows the constraint to stretch without
-    /// applying huge forces. This also applies rotation constraint heuristic to improve control.
-    /// @ingroup mouse_joint
-    class MouseJoint : public Joint, public BasicMouseJointInterface<MouseJoint, false>
-    {
-        template <typename, bool>
-        friend class BasicMouseJointInterface;
-        template <typename, bool>
-        friend class BasicWorldInterface;
-
-      public:
-        static constexpr bool IsOwning = true;
-
-        // Constructs a null (invalid) object.
-        constexpr MouseJoint() noexcept {}
-
-        // The constructor accepts either this or directly `b2MouseJointDef`.
-        struct Params : b2MouseJointDef
-        {
-            Params() : b2MouseJointDef(b2DefaultMouseJointDef()) {}
-        };
-
-        // Downcast from a generic joint.
-        // Triggers an assertion if this isn't the right joint kind.
-        explicit MouseJoint(Joint&& other) noexcept
-        {
-            if (!other || other.GetType() == b2_mouseJoint)
-                this->id = std::exchange(other.id, {});
-            else
-                BOX2CPP_ASSERT(false && "This joint is not a `MouseJoint`.");
-        }
-    };
-
-    template <bool IsConstRef>
-    class MaybeConstMouseJointRef : public MaybeConstJointRef<IsConstRef>, public BasicMouseJointInterface<MouseJointRef, IsConstRef>
-    {
-        template <typename, bool>
-        friend class BasicMouseJointInterface;
-
-      public:
-        static constexpr bool IsOwning = false;
-        static constexpr bool IsConst = IsConstRef;
-
-        // Constructs a null (invalid) object.
-        constexpr MaybeConstMouseJointRef() noexcept {}
-
-        // Point to an existing handle.
-        // Using a `same_as` template to prevent implicit madness. In particular, to prevent const-to-non-const conversions between non-owning wrappers.
-        // Downcast from a generic joint reference (or owning joint).
-        // Triggers an assertion if this isn't the right joint kind.
-        explicit constexpr MaybeConstMouseJointRef(std::same_as<b2JointId> auto id) noexcept
-        {
-            if (B2_IS_NULL(id) || b2Joint_GetType(id) == b2_mouseJoint)
-                this->id = id;
-            else
-                BOX2CPP_ASSERT(false && "This joint is not a `MouseJoint`.");
-        }
-
-        // Create from a non-reference.
-        constexpr MaybeConstMouseJointRef(const MouseJoint& other) noexcept : MaybeConstMouseJointRef(other.Handle()) {}
-
-        // Triggers an assertion if this isn't the right joint kind.
-        explicit constexpr MaybeConstMouseJointRef(MaybeConstJointRef<IsConstRef> other) noexcept : MaybeConstMouseJointRef(other.Handle()) {}
-        // Convert a non-const reference to a const reference.
-        constexpr MaybeConstMouseJointRef(const MaybeConstMouseJointRef<!IsConstRef>& other) noexcept requires IsConstRef : MaybeConstMouseJointRef(other.Handle()) {}
     };
 
     template <typename D, bool ForceConst>
@@ -1684,7 +1578,7 @@ namespace b2
         /// use a force instead, which will work better with the sub-stepping solver.
         void ApplyLinearImpulseToCenter(b2Vec2 impulse, bool wake) /*non-const*/ requires (!ForceConst);
 
-        /// This update the mass properties to the sum of the mass properties of the shapes.
+        /// This updates the mass properties to the sum of the mass properties of the shapes.
         /// This normally does not need to be called unless you called SetMassData to override
         /// the mass and you later want to reset the mass.
         /// You may also use this when automatic mass computation has been disabled.
@@ -1855,6 +1749,9 @@ namespace b2
         /// Get the user data stored in a body
         [[nodiscard]] void* GetUserData() const;
 
+        /// Wake bodies touching this body. Works for static bodies.
+        void WakeTouching() /*non-const*/ requires (!ForceConst);
+
         /// Get the world that owns this body
         [[nodiscard]] WorldRef GetWorld() /*non-const*/ requires (!ForceConst);
         [[nodiscard]] WorldConstRef GetWorld() const;
@@ -1969,11 +1866,6 @@ namespace b2
         /// @see b2MotorJointDef for details
         [[nodiscard]] MotorJoint CreateJoint(Tags::OwningHandle, const std::derived_from<b2MotorJointDef> auto& def) /*non-const*/ requires (!ForceConst);
         MotorJointRef CreateJoint(Tags::DestroyWithParent, const std::derived_from<b2MotorJointDef> auto& def) /*non-const*/ requires (!ForceConst);
-
-        /// Create a mouse joint
-        /// @see b2MouseJointDef for details
-        [[nodiscard]] MouseJoint CreateJoint(Tags::OwningHandle, const std::derived_from<b2MouseJointDef> auto& def) /*non-const*/ requires (!ForceConst);
-        MouseJointRef CreateJoint(Tags::DestroyWithParent, const std::derived_from<b2MouseJointDef> auto& def) /*non-const*/ requires (!ForceConst);
 
         /// Create a prismatic (slider) joint.
         /// @see b2PrismaticJointDef for details
@@ -2292,6 +2184,11 @@ namespace b2
         ///	@return performance data
         b2TreeStats Query(b2AABB aabb, uint64_t maskBits, b2TreeQueryCallbackFcn* callback, void* context) const;
 
+        /// Query an AABB for overlapping proxies. The callback class is called for each proxy that overlaps the supplied AABB.
+        /// No filtering is performed.
+        ///	@return performance data
+        b2TreeStats QueryAll(b2AABB aabb, b2TreeQueryCallbackFcn* callback, void* context) const;
+
         /// Ray cast against the proxies in the tree. This relies on the callback
         /// to perform a exact ray cast in the case were the proxy contains a shape.
         /// The callback also performs the any collision filtering. This has performance
@@ -2342,14 +2239,11 @@ namespace b2
 {
     template <typename D, bool ForceConst> void BasicChainInterface<D, ForceConst>::Destroy() requires (!ForceConst) { if (*this) { b2DestroyChain(static_cast<const D &>(*this).Handle()); static_cast<D &>(*this).id = {}; } }
     template <typename D, bool ForceConst> bool BasicChainInterface<D, ForceConst>::IsValid() const { return b2Chain_IsValid(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> void BasicChainInterface<D, ForceConst>::SetFriction(float friction) requires (!ForceConst) { b2Chain_SetFriction(static_cast<const D &>(*this).Handle(), friction); }
-    template <typename D, bool ForceConst> float BasicChainInterface<D, ForceConst>::GetFriction() const { return b2Chain_GetFriction(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> void BasicChainInterface<D, ForceConst>::SetMaterial(int material) requires (!ForceConst) { b2Chain_SetMaterial(static_cast<const D &>(*this).Handle(), material); }
-    template <typename D, bool ForceConst> int BasicChainInterface<D, ForceConst>::GetMaterial() const { return b2Chain_GetMaterial(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> void BasicChainInterface<D, ForceConst>::SetRestitution(float restitution) requires (!ForceConst) { b2Chain_SetRestitution(static_cast<const D &>(*this).Handle(), restitution); }
-    template <typename D, bool ForceConst> float BasicChainInterface<D, ForceConst>::GetRestitution() const { return b2Chain_GetRestitution(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> int BasicChainInterface<D, ForceConst>::GetSegmentCount() const { return b2Chain_GetSegmentCount(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> int BasicChainInterface<D, ForceConst>::GetSegments(b2ShapeId* segmentArray, int capacity) const { return b2Chain_GetSegments(static_cast<const D &>(*this).Handle(), segmentArray, capacity); }
+    template <typename D, bool ForceConst> void BasicChainInterface<D, ForceConst>::SetSurfaceMaterial(const b2SurfaceMaterial& material, int materialIndex) requires (!ForceConst) { b2Chain_SetSurfaceMaterial(static_cast<const D &>(*this).Handle(), &material, materialIndex); }
+    template <typename D, bool ForceConst> b2SurfaceMaterial BasicChainInterface<D, ForceConst>::GetSurfaceMaterial(int materialIndex) const { return b2Chain_GetSurfaceMaterial(static_cast<const D &>(*this).Handle(), materialIndex); }
+    template <typename D, bool ForceConst> int BasicChainInterface<D, ForceConst>::GetSurfaceMaterialCount() const { return b2Chain_GetSurfaceMaterialCount(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> WorldRef BasicChainInterface<D, ForceConst>::GetWorld() requires (!ForceConst) { return b2Chain_GetWorld(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> WorldConstRef BasicChainInterface<D, ForceConst>::GetWorld() const { return b2Chain_GetWorld(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::Destroy(bool updateBodyMass) requires (!ForceConst) { if (*this) { b2DestroyShape(static_cast<const D &>(*this).Handle(), updateBodyMass); static_cast<D &>(*this).id = {}; } }
@@ -2359,6 +2253,7 @@ namespace b2
     template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::Set(const b2Polygon& polygon) requires (!ForceConst) { b2Shape_SetPolygon(static_cast<const D &>(*this).Handle(), &polygon); }
     template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::Set(const b2Segment& segment) requires (!ForceConst) { b2Shape_SetSegment(static_cast<const D &>(*this).Handle(), &segment); }
     template <typename D, bool ForceConst> b2AABB BasicShapeInterface<D, ForceConst>::GetAABB() const { return b2Shape_GetAABB(static_cast<const D &>(*this).Handle()); }
+    template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::ApplyWind(b2Vec2 wind, float drag, float lift, bool wake) requires (!ForceConst) { b2Shape_ApplyWind(static_cast<const D &>(*this).Handle(), wind, drag, lift, wake); }
     template <typename D, bool ForceConst> BodyRef BasicShapeInterface<D, ForceConst>::GetBody() requires (!ForceConst) { return b2Shape_GetBody(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> BodyConstRef BasicShapeInterface<D, ForceConst>::GetBody() const { return b2Shape_GetBody(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> b2Capsule BasicShapeInterface<D, ForceConst>::GetCapsule() const { return b2Shape_GetCapsule(static_cast<const D &>(*this).Handle()); }
@@ -2378,8 +2273,6 @@ namespace b2
     template <typename D, bool ForceConst> float BasicShapeInterface<D, ForceConst>::GetFriction() const { return b2Shape_GetFriction(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::EnableHitEvents(bool flag) requires (!ForceConst) { b2Shape_EnableHitEvents(static_cast<const D &>(*this).Handle(), flag); }
     template <typename D, bool ForceConst> bool BasicShapeInterface<D, ForceConst>::AreHitEventsEnabled() const { return b2Shape_AreHitEventsEnabled(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::SetMaterial(int material) requires (!ForceConst) { b2Shape_SetMaterial(static_cast<const D &>(*this).Handle(), material); }
-    template <typename D, bool ForceConst> int BasicShapeInterface<D, ForceConst>::GetMaterial() const { return b2Shape_GetMaterial(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> ChainRef BasicShapeInterface<D, ForceConst>::GetParentChain() requires (!ForceConst) { return b2Shape_GetParentChain(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> ChainConstRef BasicShapeInterface<D, ForceConst>::GetParentChain() const { return b2Shape_GetParentChain(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> b2Polygon BasicShapeInterface<D, ForceConst>::GetPolygon() const { return b2Shape_GetPolygon(static_cast<const D &>(*this).Handle()); }
@@ -2394,15 +2287,17 @@ namespace b2
     template <typename D, bool ForceConst> int BasicShapeInterface<D, ForceConst>::GetSensorData(b2ShapeId* visitorIds, int capacity) const { return b2Shape_GetSensorData(static_cast<const D &>(*this).Handle(), visitorIds, capacity); }
     template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::EnableSensorEvents(bool flag) requires (!ForceConst) { b2Shape_EnableSensorEvents(static_cast<const D &>(*this).Handle(), flag); }
     template <typename D, bool ForceConst> bool BasicShapeInterface<D, ForceConst>::AreSensorEventsEnabled() const { return b2Shape_AreSensorEventsEnabled(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::SetSurfaceMaterial(b2SurfaceMaterial surfaceMaterial) requires (!ForceConst) { b2Shape_SetSurfaceMaterial(static_cast<const D &>(*this).Handle(), surfaceMaterial); }
+    template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::SetSurfaceMaterial(const b2SurfaceMaterial& surfaceMaterial) requires (!ForceConst) { b2Shape_SetSurfaceMaterial(static_cast<const D &>(*this).Handle(), &surfaceMaterial); }
     template <typename D, bool ForceConst> b2SurfaceMaterial BasicShapeInterface<D, ForceConst>::GetSurfaceMaterial() const { return b2Shape_GetSurfaceMaterial(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> bool BasicShapeInterface<D, ForceConst>::TestPoint(b2Vec2 point) const { return b2Shape_TestPoint(static_cast<const D &>(*this).Handle(), point); }
     template <typename D, bool ForceConst> b2ShapeType BasicShapeInterface<D, ForceConst>::GetType() const { return b2Shape_GetType(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::SetUserData(void* userData) requires (!ForceConst) { b2Shape_SetUserData(static_cast<const D &>(*this).Handle(), userData); }
     template <typename D, bool ForceConst> void* BasicShapeInterface<D, ForceConst>::GetUserData() const { return b2Shape_GetUserData(static_cast<const D &>(*this).Handle()); }
+    template <typename D, bool ForceConst> void BasicShapeInterface<D, ForceConst>::SetUserMaterial(uint64_t material) requires (!ForceConst) { b2Shape_SetUserMaterial(static_cast<const D &>(*this).Handle(), material); }
+    template <typename D, bool ForceConst> uint64_t BasicShapeInterface<D, ForceConst>::GetUserMaterial() const { return b2Shape_GetUserMaterial(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> WorldRef BasicShapeInterface<D, ForceConst>::GetWorld() requires (!ForceConst) { return b2Shape_GetWorld(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> WorldConstRef BasicShapeInterface<D, ForceConst>::GetWorld() const { return b2Shape_GetWorld(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> void BasicJointInterface<D, ForceConst>::Destroy() requires (!ForceConst) { if (*this) { b2DestroyJoint(static_cast<const D &>(*this).Handle()); static_cast<D &>(*this).id = {}; } }
+    template <typename D, bool ForceConst> void BasicJointInterface<D, ForceConst>::Destroy(bool wakeAttached) requires (!ForceConst) { if (*this) { b2DestroyJoint(static_cast<const D &>(*this).Handle(), wakeAttached); static_cast<D &>(*this).id = {}; } }
     template <typename D, bool ForceConst> bool BasicJointInterface<D, ForceConst>::IsValid() const { return b2Joint_IsValid(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> float BasicJointInterface<D, ForceConst>::GetAngularSeparation() const { return b2Joint_GetAngularSeparation(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> BodyRef BasicJointInterface<D, ForceConst>::GetBodyA() requires (!ForceConst) { return b2Joint_GetBodyA(static_cast<const D &>(*this).Handle()); }
@@ -2430,7 +2325,6 @@ namespace b2
     template <typename D, bool ForceConst> void BasicJointInterface<D, ForceConst>::WakeBodies() requires (!ForceConst) { b2Joint_WakeBodies(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> WorldRef BasicJointInterface<D, ForceConst>::GetWorld() requires (!ForceConst) { return b2Joint_GetWorld(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> WorldConstRef BasicJointInterface<D, ForceConst>::GetWorld() const { return b2Joint_GetWorld(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> bool BasicDistanceJointInterface<D, ForceConst>::IsCompressionEnabled() const { return b2DistanceJoint_IsCompressionEnabled(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> float BasicDistanceJointInterface<D, ForceConst>::GetCurrentLength() const { return b2DistanceJoint_GetCurrentLength(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> void BasicDistanceJointInterface<D, ForceConst>::SetLength(float length) requires (!ForceConst) { b2DistanceJoint_SetLength(static_cast<const D &>(*this).Handle(), length); }
     template <typename D, bool ForceConst> float BasicDistanceJointInterface<D, ForceConst>::GetLength() const { return b2DistanceJoint_GetLength(static_cast<const D &>(*this).Handle()); }
@@ -2474,12 +2368,6 @@ namespace b2
     template <typename D, bool ForceConst> float BasicMotorJointInterface<D, ForceConst>::GetMaxVelocityForce() const { return b2MotorJoint_GetMaxVelocityForce(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> void BasicMotorJointInterface<D, ForceConst>::SetMaxVelocityTorque(float maxTorque) requires (!ForceConst) { b2MotorJoint_SetMaxVelocityTorque(static_cast<const D &>(*this).Handle(), maxTorque); }
     template <typename D, bool ForceConst> float BasicMotorJointInterface<D, ForceConst>::GetMaxVelocityTorque() const { return b2MotorJoint_GetMaxVelocityTorque(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> void BasicMouseJointInterface<D, ForceConst>::SetMaxForce(float maxForce) requires (!ForceConst) { b2MouseJoint_SetMaxForce(static_cast<const D &>(*this).Handle(), maxForce); }
-    template <typename D, bool ForceConst> float BasicMouseJointInterface<D, ForceConst>::GetMaxForce() const { return b2MouseJoint_GetMaxForce(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> void BasicMouseJointInterface<D, ForceConst>::SetSpringDampingRatio(float dampingRatio) requires (!ForceConst) { b2MouseJoint_SetSpringDampingRatio(static_cast<const D &>(*this).Handle(), dampingRatio); }
-    template <typename D, bool ForceConst> float BasicMouseJointInterface<D, ForceConst>::GetSpringDampingRatio() const { return b2MouseJoint_GetSpringDampingRatio(static_cast<const D &>(*this).Handle()); }
-    template <typename D, bool ForceConst> void BasicMouseJointInterface<D, ForceConst>::SetSpringHertz(float hertz) requires (!ForceConst) { b2MouseJoint_SetSpringHertz(static_cast<const D &>(*this).Handle(), hertz); }
-    template <typename D, bool ForceConst> float BasicMouseJointInterface<D, ForceConst>::GetSpringHertz() const { return b2MouseJoint_GetSpringHertz(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> void BasicPrismaticJointInterface<D, ForceConst>::EnableLimit(bool enableLimit) requires (!ForceConst) { b2PrismaticJoint_EnableLimit(static_cast<const D &>(*this).Handle(), enableLimit); }
     template <typename D, bool ForceConst> bool BasicPrismaticJointInterface<D, ForceConst>::IsLimitEnabled() const { return b2PrismaticJoint_IsLimitEnabled(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> void BasicPrismaticJointInterface<D, ForceConst>::SetLimits(float lower, float upper) requires (!ForceConst) { b2PrismaticJoint_SetLimits(static_cast<const D &>(*this).Handle(), lower, upper); }
@@ -2619,6 +2507,7 @@ namespace b2
     template <typename D, bool ForceConst> b2BodyType BasicBodyInterface<D, ForceConst>::GetType() const { return b2Body_GetType(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> void BasicBodyInterface<D, ForceConst>::SetUserData(void* userData) requires (!ForceConst) { b2Body_SetUserData(static_cast<const D &>(*this).Handle(), userData); }
     template <typename D, bool ForceConst> void* BasicBodyInterface<D, ForceConst>::GetUserData() const { return b2Body_GetUserData(static_cast<const D &>(*this).Handle()); }
+    template <typename D, bool ForceConst> void BasicBodyInterface<D, ForceConst>::WakeTouching() requires (!ForceConst) { b2Body_WakeTouching(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> WorldRef BasicBodyInterface<D, ForceConst>::GetWorld() requires (!ForceConst) { return b2Body_GetWorld(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> WorldConstRef BasicBodyInterface<D, ForceConst>::GetWorld() const { return b2Body_GetWorld(static_cast<const D &>(*this).Handle()); }
     template <typename D, bool ForceConst> b2Vec2 BasicBodyInterface<D, ForceConst>::GetWorldCenterOfMass() const { return b2Body_GetWorldCenterOfMass(static_cast<const D &>(*this).Handle()); }
@@ -2633,8 +2522,6 @@ namespace b2
     template <typename D, bool ForceConst> JointRef BasicWorldInterface<D, ForceConst>::CreateJoint(Tags::DestroyWithParent, const b2FilterJointDef& def) requires (!ForceConst) { return b2CreateFilterJoint(static_cast<const D &>(*this).Handle(), &def); }
     template <typename D, bool ForceConst> MotorJoint BasicWorldInterface<D, ForceConst>::CreateJoint(Tags::OwningHandle, const std::derived_from<b2MotorJointDef> auto& def) requires (!ForceConst) { MotorJoint ret; ret.id = b2CreateMotorJoint(static_cast<const D &>(*this).Handle(), &def); return ret; }
     template <typename D, bool ForceConst> MotorJointRef BasicWorldInterface<D, ForceConst>::CreateJoint(Tags::DestroyWithParent, const std::derived_from<b2MotorJointDef> auto& def) requires (!ForceConst) { return (MotorJointRef)b2CreateMotorJoint(static_cast<const D &>(*this).Handle(), &def); }
-    template <typename D, bool ForceConst> MouseJoint BasicWorldInterface<D, ForceConst>::CreateJoint(Tags::OwningHandle, const std::derived_from<b2MouseJointDef> auto& def) requires (!ForceConst) { MouseJoint ret; ret.id = b2CreateMouseJoint(static_cast<const D &>(*this).Handle(), &def); return ret; }
-    template <typename D, bool ForceConst> MouseJointRef BasicWorldInterface<D, ForceConst>::CreateJoint(Tags::DestroyWithParent, const std::derived_from<b2MouseJointDef> auto& def) requires (!ForceConst) { return (MouseJointRef)b2CreateMouseJoint(static_cast<const D &>(*this).Handle(), &def); }
     template <typename D, bool ForceConst> PrismaticJoint BasicWorldInterface<D, ForceConst>::CreateJoint(Tags::OwningHandle, const std::derived_from<b2PrismaticJointDef> auto& def) requires (!ForceConst) { PrismaticJoint ret; ret.id = b2CreatePrismaticJoint(static_cast<const D &>(*this).Handle(), &def); return ret; }
     template <typename D, bool ForceConst> PrismaticJointRef BasicWorldInterface<D, ForceConst>::CreateJoint(Tags::DestroyWithParent, const std::derived_from<b2PrismaticJointDef> auto& def) requires (!ForceConst) { return (PrismaticJointRef)b2CreatePrismaticJoint(static_cast<const D &>(*this).Handle(), &def); }
     template <typename D, bool ForceConst> RevoluteJoint BasicWorldInterface<D, ForceConst>::CreateJoint(Tags::OwningHandle, const std::derived_from<b2RevoluteJointDef> auto& def) requires (!ForceConst) { RevoluteJoint ret; ret.id = b2CreateRevoluteJoint(static_cast<const D &>(*this).Handle(), &def); return ret; }
@@ -2702,6 +2589,7 @@ namespace b2
     inline void DynamicTree::MoveProxy(int proxyId, b2AABB aabb) { b2DynamicTree_MoveProxy(&value, proxyId, aabb); }
     inline int DynamicTree::GetProxyCount() const { return b2DynamicTree_GetProxyCount(&value); }
     inline b2TreeStats DynamicTree::Query(b2AABB aabb, uint64_t maskBits, b2TreeQueryCallbackFcn* callback, void* context) const { return b2DynamicTree_Query(&value, aabb, maskBits, callback, context); }
+    inline b2TreeStats DynamicTree::QueryAll(b2AABB aabb, b2TreeQueryCallbackFcn* callback, void* context) const { return b2DynamicTree_QueryAll(&value, aabb, callback, context); }
     inline b2TreeStats DynamicTree::RayCast(const b2RayCastInput& input, uint64_t maskBits, b2TreeRayCastCallbackFcn* callback, void* context) const { return b2DynamicTree_RayCast(&value, &input, maskBits, callback, context); }
     inline int DynamicTree::Rebuild(bool fullBuild) { return b2DynamicTree_Rebuild(&value, fullBuild); }
     inline b2AABB DynamicTree::GetRootBounds() const { return b2DynamicTree_GetRootBounds(&value); }
