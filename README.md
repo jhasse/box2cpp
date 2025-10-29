@@ -188,7 +188,6 @@ int main()
         // ImGui main loop...
 
         debug_renderer.DrawShapes(world); // Draw Box2D shapes.
-        debug_renderer.MouseDrag(world); // Allow dragging bodies with mouse.
         debug_renderer.DrawModeToggles(); // Checkboxes for adjusting visualization.
     }
 }

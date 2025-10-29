@@ -13,7 +13,6 @@ namespace b2
     //   Camera orientation has viable defaults for running simple examples.
     // * Call `.DrawShapes(world);` every frame to render the shapes.
     // * Call `.DrawModeToggles();` every frame to draw checkboxes for tweaking shape visualization.
-    // * Call `.MouseDrag(world);` every frame to enable dragging shapes with mouse. Also draws a checkbox to enable/disable it.
     class DebugImguiRenderer
     {
       public:
@@ -32,13 +31,6 @@ namespace b2
         b2Rot camera_rot = b2Rot{.c = 1, .s = 0};
         // If true, the Y axis is inverted and points upwards instead of downwards.
         float y_axis_is_upwards = false;
-
-        // Drag bodies with mouse:
-
-        // If true, enable dragging shapes with the mouse. Must call `MouseDrag()` to do this, which also shows a checkbox for this value.
-        bool enable_mouse_drag = false;
-        // Which button to use for mouse dragging.
-        ImGuiMouseButton mouse_drag_button = ImGuiMouseButton_Left;
 
         // Render settings:
 
@@ -235,56 +227,6 @@ namespace b2
             ImGui::End();
         }
 
-        // Perform mouse drag and draw a checkbox to enable/disable it.
-        void MouseDrag(b2::WorldRef world)
-        {
-            // Draw toggle.
-            ImGui::Begin("box2d debug render");
-
-            ImGui::Checkbox("Mouse drag", &enable_mouse_drag);
-            ImGui::Separator(); // In case we draw multiple windows.
-
-            ImGui::End();
-
-            // Initiate.
-            if (enable_mouse_drag && !mouse_joint && ImGui::IsMouseClicked(mouse_drag_button))
-            {
-                b2Vec2 point = ImguiToBox2dPoint(ImGui::GetMousePos());
-                b2::ShapeRef target;
-                world.Overlap(b2ShapeProxy{.points = {point}, .count = 1, .radius = 0}, b2DefaultQueryFilter(),
-                    [&](b2::ShapeRef shape)
-                    {
-                        target = shape;
-                        return false;
-                    }
-                );
-
-                if (target && target.GetBody().GetType() == b2_dynamicBody)
-                {
-                    mouse_joint_body = world.CreateBody(b2::OwningHandle, b2::Body::Params{});
-                    b2::MouseJoint::Params joint_params{};
-                    joint_params.bodyIdA = mouse_joint_body;
-                    joint_params.bodyIdB = target.GetBody();
-                    joint_params.target = point;
-                    joint_params.maxForce = 1000.0f * target.GetBody().GetMass();
-                    mouse_joint = world.CreateJoint(b2::DestroyWithParent, joint_params);
-                }
-            }
-            // Finish.
-            if (mouse_joint && !ImGui::IsMouseDown(mouse_drag_button))
-            {
-                mouse_joint = {};
-                mouse_joint_body = {};
-            }
-            // Continue drag.
-            if (mouse_joint)
-            {
-                mouse_joint.SetTarget(ImguiToBox2dPoint(ImGui::GetMousePos()));
-                mouse_joint.GetBodyB().SetAwake(true); // Poke the body to stop it from sleeping.
-                ImGui::SetNextFrameWantCaptureMouse(true);
-            }
-        }
-
         // Coordinate conversions:
 
         ImVec2 Box2dToImguiDir(b2Vec2 dir) const
@@ -417,9 +359,5 @@ namespace b2
             DrawList().PathFillConvex(ShapeColorToImguiColor(color, true));
             DrawCapsule(p1, p2, radius, color);
         }
-
-        // Mouse drag state:
-        b2::MouseJointRef mouse_joint;
-        b2::Body mouse_joint_body;
     };
 }
